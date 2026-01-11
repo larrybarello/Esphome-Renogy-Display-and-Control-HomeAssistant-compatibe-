@@ -1,0 +1,26 @@
+# udp variation for van display
+
+udp:
+
+packet_transport:
+  - platform: udp
+    update_interval: 10s
+    providers:
+      - name: refrigerator
+      - name: vancontroller
+    binary_sensors:
+      - sw_exterior   # our lvgl button press state -> van controller
+      - sw_inside
+      - sw_starlink
+      - sw_waterpump
+
+esphome:
+  on_boot:
+    then:
+      - script.execute: whoami 
+
+script:
+  - id: whoami
+    then:
+      - delay: 10s
+      - lambda: ESP_LOGI("transport", "Using UDP transport");

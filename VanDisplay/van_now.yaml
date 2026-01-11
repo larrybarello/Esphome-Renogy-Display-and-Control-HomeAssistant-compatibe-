@@ -1,0 +1,34 @@
+espnow:
+  id: bob
+  auto_add_peer: true
+#  on_receive:
+#    - logger.log:
+#        format: "Sent to %s from %s: %s RSSI: %ddBm"
+#        args:
+#          - format_mac_address_pretty(info.des_addr).c_str()
+#          - format_mac_address_pretty(info.src_addr).c_str()
+#          - format_hex_pretty(data, size).c_str()
+#          - info.rx_ctrl->rssi
+
+packet_transport:
+  - platform: espnow
+    espnow_id: bob
+    providers:
+      - name: refrigerator
+      - name: vancontroller
+    binary_sensors:
+      - sw_exterior   # our lvgl button press state -> van controller
+      - sw_inside
+      - sw_starlink
+      - sw_waterpump
+
+esphome:
+  on_boot:
+    then:
+      - script.execute: whoami 
+
+script:
+  - id: whoami
+    then:
+      - delay: 10s
+      - lambda: ESP_LOGI("transport", "Using ESPNOW transport");
