@@ -1,0 +1,553 @@
+substitutions:
+  device_name: refrigerator
+# the following supports conditional builds for the four variations...
+# esphome -s sensor bench -s transport espnow run refrigerator.yaml
+# default build is for van and tab5 display
+  sensor: 'van'
+  transport: 'udp'
+  udp_transport:  !include refrigerator/refer_udp.yaml
+  now_transport:  !include refrigerator/refer_now.yaml
+  bench_sensor:   !include refrigerator/refer_sensors_bench.yaml
+  van_sensor:     !include refrigerator/refer_sensors_van.yaml
+
+packages:
+  wifi:   !include library/wifi_common.yaml
+  fonts: !include refrigerator/fonts.yaml
+
+  f1: ${ udp_transport if (transport | lower) == "udp"    else {}}
+  f2: ${ now_transport if (transport | lower) == "espnow" else {}}
+  f3: ${  bench_sensor if (sensor | lower) ==  "bench"    else {} } # And sensor {van, bench}
+  f4: ${    van_sensor if (sensor | lower) == "van"       else {} }
+
+esphome:
+  name: refrigerator
+  on_boot:
+    priority: 600 # is default
+    then:
+      - script.execute: lcd_backlight_script
+
+  includes:
+    - refrigerator/refer_edit.h
+
+preferences:
+  flash_write_interval: 0s
+
+esp32:
+  board: esp32-s3-devkitc-1
+  variant: esp32s3
+  framework:
+    type: esp-idf
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+logger:
+  level: INFO
+
+switch:
+  - platform: template
+    name: Enable
+    id: power
+    restore_mode: RESTORE_DEFAULT_OFF
+    optimistic: true
+    turn_on_action:
+      - script.execute: refer_control
+    turn_off_action:
+      - script.execute: refer_control
+
+  - platform: template
+    name: Farenheit
+    id: Farenheit
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+    turn_off_action:
+      script.execute: update
+    turn_on_action:
+      script.execute: update
+      
+   
+  - platform: gpio  # this is the actual control, see binary_sensor: template for front end display
+    pin: GPIO1
+    id: compressor
+    internal: true
+
+  - platform: restart
+    id: restart_node
+
+spi:
+  type: octal
+  clk_pin: 8
+  data_pins:
+    - 39
+    - 40
+    - 41
+    - 42
+    - ignore_strapping_warning: true
+      number: 45
+    - ignore_strapping_warning: true
+      number: 46
+    - 47
+    - 48
+
+display:
+  - platform: mipi_spi
+    model: t-display-s3
+    id: screen
+    update_interval: 1s
+    rotation: 270
+    lambda: |-
+      int width = it.get_width();
+      int height = it.get_height();
+      int refer_cx = width/4;       // layout screen elements
+      int freezer_cx = width*3/4;
+      int lable_ty = 35;
+      int value_ty = 60;
+      int setpoint_ty = 110;
+
+      // draw a pretty rectangle
+      it.rectangle(0,  0, width, height, id(my_blue));
+      it.rectangle(0, 30, width, height, id(my_blue));   // header bar
+      
+      // Draw some info in top bar (on/off and room temperature)
+      it.printf(width-5, 5, id(helvetica_18), id(my_white), TextAlign::TOP_RIGHT, "room: %.0f %s %.0f%s", 
+          id(room_temp).state,  
+          id(room_temp).get_unit_of_measurement_ref().c_str(), 
+          id(room_humidity).state,
+          id(room_humidity).get_unit_of_measurement_ref().c_str()
+        );
+      if (id(eEdit) == eEnable) it.filled_rectangle(refer_cx-18, 5, 36, 18, Color(0, 128, 0));
+      it.print(5, 5, id(helvetica_18), id(power).state?id(my_white):id(my_red), TextAlign::TOP_LEFT, id(power).state?"Power ON":"Power OFF");
+
+      // refrigerator section
+
+      it.print (refer_cx, lable_ty,  id(helvetica_12), id(my_white), TextAlign::TOP_CENTER, "Refrig");
+
+      if (id(eEdit) == eUnits) {
+        it.filled_rectangle(refer_cx+27, value_ty+5, 24, 36, Color(0,128,0));
+      }
+      it.printf(refer_cx, value_ty,  id(helvetica_36), id(my_white), TextAlign::TOP_CENTER, "%.1f %s", id(refer_temp).state, id(refer_temp).get_unit_of_measurement_ref().c_str());
+
+      if (id(eEdit) == eSP) {
+        it.filled_rectangle(refer_cx-24, setpoint_ty, 48, 24, Color(0,128,0));
+      }
+      it.printf(refer_cx, setpoint_ty, id(helvetica_28), id(my_white), TextAlign::TOP_CENTER, "%.0f", id(refer_setpoint).state);
+
+      // Freezer section
+
+      it.print (freezer_cx, lable_ty,  id(helvetica_12), id(my_white), TextAlign::TOP_CENTER, "Freezer");
+
+      it.printf(freezer_cx, value_ty,  id(helvetica_36), id(my_white), TextAlign::TOP_CENTER, "%.1f %s", id(freezer_temp).state, id(freezer_temp).get_unit_of_measurement_ref().c_str());
+
+      // System state w/r to connection.  Also, conditional display of timeout value when editing
+
+      if (id(eEdit) == eTimeout) {
+         if (id(display_timeout).state > 0) {
+           it.filled_rectangle(140, height - 5 - 20, 24, 18, Color(0, 128, 0));
+           it.printf(5, height - 5, id(helvetica_18), id(my_white), TextAlign::BOTTOM_LEFT, "Display Timeout %2.0f seconds", id(display_timeout).state);
+         } else {
+           it.filled_rectangle(140, height - 5 - 20, 64, 18, Color(0, 128, 0));
+           it.print (5, height - 5, id(helvetica_18), id(my_white), TextAlign::BOTTOM_LEFT, "Display Timeout NEVER");
+         }
+      } else {
+         it.printf(5, height - 5, id(helvetica_18), id(my_green), TextAlign::BOTTOM_LEFT, "%s %s", id(ap_name).state.c_str(), id(ip_adx).state.c_str());
+         if(id(system_status).state) {
+           it.print(width-5, height - 5, id(helvetica_18), id(my_green), TextAlign::BOTTOM_RIGHT, "online");
+         } else {
+           it.print(width-5, height - 5, id(helvetica_18), id(my_red), TextAlign::BOTTOM_RIGHT, "offline");
+         }
+      }
+
+      //ESP_LOGI("screen", "eEdit %d F %d sp refer %f sp freezer %f", id(Farenheit).state);
+
+
+globals:
+# these values are used to manipulate the display and various values.
+  - id: eEdit               # enum: 0 no edit, enable, setpoint, timeout
+    type: int
+    restore_value: no
+    initial_value: '0'      # eStart (from include file which isn't included until AFTER the globals are declared)
+
+number:
+  - platform: template
+    name: "Display timeout"
+    id: display_timeout
+    min_value: 0
+    max_value: 60
+    step: 15
+    optimistic: True
+    restore_value: true 
+    initial_value: 15
+    on_value:
+      then:
+        - script.execute: lcd_backlight_script
+
+# maintain refrigerator setpoint in C.  Use templates to return C or F to front end and display
+  - platform: template
+    id: refer_sp_C
+    min_value: 0
+    max_value: 10
+    optimistic: true
+    restore_value: true
+    initial_value: 3
+    step: 1
+    on_value:
+      then:
+        - script.execute: update
+
+sensor:
+  - platform: template
+    name: 'refrigerator setpoint'
+    id: refer_setpoint
+#    update_interval: 10s
+    lambda: |-
+      auto xv = id(refer_sp_C).state;
+      bool bF = id(Farenheit).state;
+      id(refer_setpoint).set_unit_of_measurement(bF?"°F":"°C"); 
+      return bF ? xv *9.0/5.0+32 :  xv;
+
+  - platform: template
+    name: 'freezer temperature'
+    id: freezer_temp
+#    internal: true
+#    update_interval: 10s
+    lambda: |-
+      auto xv = id(freezer_temp_C).state;
+      bool bF = id(Farenheit).state;
+      id(freezer_temp).set_unit_of_measurement(bF?"°F":"°C"); 
+      return bF ? xv *9.0/5.0+32 :  xv;
+      
+  - platform: template
+    name: 'refrigerator temperature'
+    id: refer_temp
+#    internal: true
+#    update_interval: 10s
+    lambda: |-
+      auto xv = id(refer_temp_C).state;
+      bool bF = id(Farenheit).state;
+      id(refer_temp).set_unit_of_measurement(bF?"°F":"°C"); 
+      return bF ? xv *9.0/5.0+32 :  xv;
+      
+  - platform: template
+    name: 'Room temperature'
+    id: room_temp
+#    internal: true
+#    update_interval: 10s
+    lambda: |-
+      auto xv = id(room_temp_C).state;
+      bool bF = id(Farenheit).state;
+      id(room_temp).set_unit_of_measurement(bF?"°F":"°C"); 
+      return bF ? xv *9.0/5.0+32 :  xv;
+    
+  - id: !extend refer_temp_C
+    on_value:
+      - script.execute: refer_control # also call whenever refer (dis)enabled
+
+button:
+  - platform: template
+    id: reset
+    name: "reboot"
+    on_press:
+      then:
+        - script.execute: restart_refrigerator
+
+binary_sensor:
+  - platform: status
+    name: "Node Status"
+    id: system_status
+    internal: true
+
+  - platform: switch      # expose compressor relay state to front end (but don't allow control)
+    name: Compressor
+    id: compressor_power
+    source_id: compressor
+#    lambda: return id(compressor).state;
+
+  - platform: switch
+    id: refer_enable
+    source_id: power
+#    lambda: return id(power).state;
+
+  - platform: switch
+    id: unit_select
+    source_id: Farenheit
+#    lambda: return id(Farenheit).state;
+    
+# Two button menu control.
+# Up/down - modify editable elements upon release.
+# press and hold up or down, press and release the other to cycle through editable elements
+
+# UP button (both navigate, select and modify)
+  - platform: gpio 
+    id: up_button
+    pin:
+#      number: GPIO25
+      number: GPIO0  # on board button
+      inverted: true
+      mode: INPUT_PULLUP
+      ignore_strapping_warning: true
+    on_press:
+      - script.execute: lcd_backlight_script
+      - script.execute: reset_edit
+
+    on_click:
+    - min_length: 50ms
+      max_length: 350ms
+      then:
+        - lambda: |-
+            switch(id(eEdit))
+            {
+              case eUnits:
+                id(Farenheit).toggle();
+                break;
+              case eSP:
+              {
+                auto call = id(refer_sp_C).make_call();
+                float inc = (id(Farenheit).state?(5.0/9):(1.0));
+                float val = id(refer_sp_C).state;
+                call.set_value(val + inc);
+                call.perform();
+              }
+                break;
+              case eEnable:
+                id(power).toggle();
+                break;
+              case eTimeout:
+              {
+                auto call = id(display_timeout).make_call();
+                call.number_increment(false);
+                call.perform();
+                id(lcd_backlight_script).execute();
+              }
+              default:
+                break;
+            }
+#            ESP_LOGI("Foo", "short key press UP");
+#        - component.update: screen
+        - script.execute: update
+
+    - min_length: 350ms
+      max_length: 2000ms
+      then:
+        - lambda: |-
+            id(eEdit) += 1;
+            if (id(eEdit) > eEnd) id(eEdit) = eStart;
+#            ESP_LOGI("Foo", "long key press UP");
+        - component.update: screen
+
+# DOWN button
+
+  - platform: gpio
+    id: down_button
+    pin:
+#      number: GPIO26
+      number: GPIO14   # on board button
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+  
+    on_press:
+      - script.execute: lcd_backlight_script
+      - script.execute: reset_edit
+
+    on_click:
+    - min_length: 50ms
+      max_length: 350ms
+      then:
+        - lambda: |-
+            switch(id(eEdit))
+            {
+              case eUnits:
+                id(Farenheit).toggle();
+                break;
+              case eSP:
+              {
+                auto call = id(refer_sp_C).make_call();
+                float inc = (id(Farenheit).state?(5.0/9):(1.0));
+                float val = id(refer_sp_C).state;
+                call.set_value(val - inc);
+                call.perform();
+              }
+                break;
+              case eEnable:
+                id(power).toggle();
+                break;
+              case eTimeout:
+              {
+                auto call = id(display_timeout).make_call();
+                call.number_decrement(false);
+                call.perform();
+                id(lcd_backlight_script).execute();
+              }
+              default:
+                break;
+            }
+#            ESP_LOGI("refer", "short press DOWN");
+#        - component.update: screen
+        - script.execute: update
+
+    - min_length: 350ms
+      max_length: 2000ms
+      then:
+        - lambda: |-
+            id(eEdit) -= 1;
+            if (id(eEdit) < eStart) id(eEdit) = eEnd;
+#            ESP_LOGI("refer", "long press down");
+        - component.update: screen
+
+light:
+  - platform: monochromatic     # expose to front end with control
+    output: backlight_pwm
+    name: "Backlight"
+    id: Backlight
+
+output:
+  - platform: ledc
+    pin: GPIO38
+    id: backlight_pwm
+
+interval:
+  - interval: 10s
+    then: 
+      - script.execute: update
+
+script:
+# script to implement refrigerator compressor control (called from Dallas update)
+# should be called whevever something changes (temperature every 10 seconds, so that is the update rate)
+# could be called from the display which updates every second...  plenty of processor
+  - id: refer_control
+    then:
+      - lambda: |-
+          enum eState {
+            RefrigeratorOff,
+            WaitTemperatureTooHigh, 
+            WaitMinimumOffTime,
+            WaitTemperatureTooLow,
+            WaitMinimumOnTime
+          };
+          static eState myState = RefrigeratorOff;
+          eState prevState;
+          
+          do {
+            prevState = myState;
+
+            if (id(power).state == false) {     // check if powering down.
+                id(compressor).turn_off();
+                if (myState != RefrigeratorOff) ESP_LOGI("refer", "Power Off");
+                myState = RefrigeratorOff;
+            }
+            switch(myState)
+            {
+              case RefrigeratorOff:
+                if(id(power).state == true) {
+                  myState = WaitTemperatureTooHigh;
+                  ESP_LOGI("refer", "Power on");
+                }
+                break;
+              case WaitTemperatureTooHigh:
+                // Assume compressor is off
+                if (id(refer_temp).state > id(refer_setpoint).state) {
+                  ESP_LOGI("refer", "Refrigerator too warm");
+                  if (id(MinOnOffTimer).is_running() == true) {
+                    ESP_LOGI("refer", "Minimum off time not met");
+                  }
+                  myState = WaitMinimumOffTime;
+                }
+                break;
+              case WaitMinimumOffTime:
+                if (id(MinOnOffTimer).is_running() == false) {
+                  id(MinOnOffTimer).execute(3*60);              // Three minute lock-out
+                  id(compressor).turn_on();
+                  ESP_LOGI("refer", "Compressor on");
+                  myState = WaitTemperatureTooLow;
+                }
+                break;
+              case WaitTemperatureTooLow:
+                if (id(refer_temp).state < (id(refer_setpoint).state - 1.0)) {  // 1C hysterisis 
+                  ESP_LOGI("refer", "Refrigerator cool");
+                  if (id(MinOnOffTimer).is_running() == true) {
+                    ESP_LOGI("refer", "Minimum ON time not met");
+                  }
+                  myState = WaitMinimumOnTime;
+                }
+                break;
+              case WaitMinimumOnTime:
+                if (id(MinOnOffTimer).is_running() == false) {
+                  id(MinOnOffTimer).execute(3*60);            // Three minute lock-out
+                  id(compressor).turn_off();
+                  ESP_LOGI("refer", "Compressor off");
+                  myState = WaitTemperatureTooHigh;
+                }
+                break;
+              default:
+                myState = RefrigeratorOff;
+            }
+          }
+          while(myState != prevState);        // Loop until all state transitions occur and we are waiting for something to change.
+
+  - id: MinOnOffTimer
+    parameters:
+      delay_sec: int
+    then:
+      - logger.log: 
+          format: "MinOnOffTimer %d started"
+          args: [delay_sec]
+          level: info
+      - delay: !lambda return delay_sec * 1000;
+      - logger.log: 
+          format: "MinOnOffTimer expired"
+          level: info
+          
+# script to update all sensors per the C/F flag and repaint the screen
+# NB: templated (binary_)sensors/switches automatically update when their inputs change.
+# so this isn't actually needed.
+# but for some reason the 10ms delay allows state to be propogated before updating 
+# the various template sensors (push out packets & update screen)
+
+  - id: update
+    mode: restart
+    then:
+#      - lambda: 'ESP_LOGI("update", "activated");'
+      - delay: 10ms
+      - component.update: dht_hub
+      - component.update: room_temp
+      - component.update: freezer_temp
+      - component.update: refer_temp
+      - component.update: refer_setpoint
+      - component.update: screen
+
+# run this script after changing C/F to force the front end to recache the units.
+  - id: restart_refrigerator
+    then:
+      - delay: 1s
+      - switch.turn_on:
+          id: restart_node
+
+# script to activate backlight for 15 seconds (rolling) and resetting eEdit when turning off
+  - id: lcd_backlight_script
+    mode: restart
+    then:
+      - light.turn_on: 
+          id: Backlight
+          brightness: 100%
+      - if:
+          condition:
+            lambda: 'return id(display_timeout).state > 0;'
+          then:
+            - delay: !lambda 'return id(display_timeout).state*1000;'
+            - light.turn_off: 
+                id: Backlight
+
+  - id: reset_edit  # Reset the edit mode independently from blanking screen which may never happen.
+    mode: restart
+    then:
+      - delay: 15s
+      - globals.set:
+          value: 'eNoEdit'
+          id: eEdit
+      - component.update: screen
+
+time:
+  - platform: homeassistant
+    id: esptime

@@ -1,0 +1,125 @@
+# Virtual buttons
+button:
+# a helper best put here. This isn't used
+  - platform: template
+    name: Turn all off
+    id: turn_all_off
+    on_press:
+      then:
+        - switch.turn_off: relay1 # starlink
+        - switch.turn_off: relay2 # water pump
+        - switch.turn_off: relay3 # exterior lights
+        - switch.turn_off: relay4 # interior lights
+        - delay: 10ms             # yield time to OS
+        - switch.turn_off: relay5 # spare
+        - switch.turn_off: relay6 # battery heater relay
+        - switch.turn_off: relay7 # Cabinet fan relay
+        - switch.turn_off: relay8 # solar relay
+
+switch:
+  # rename relays for the web page/documentation
+  # TODO: the "on_state:" automation isn't necessary (at least the "publish_state")
+  - id: !extend relay8
+    name: Relay 8 Solar disconnect
+    on_state:
+      - lambda: 'id(SolarConnected).publish_state(x);'
+  - id: !extend relay7
+    name: Relay 7 Cabinet Fan
+    on_state:
+      - lambda: 'id(CabinetFan).publish_state(x);'
+  - id: !extend relay6
+    name: Relay 6 Battery Heater
+    on_state:
+      - lambda: 'id(BatteryHeater).publish_state(x);'
+  - id: !extend relay5
+    name: Relay 5 spare relay
+    on_state:
+      - lambda: 'id(Spare).publish_state(x);'
+  - id: !extend relay4
+    name: Relay 4 Interior Lights
+#    on_state:
+#      - lambda: 'id(InteriorLights).publish_state(x); ESP_LOGI("relay", "Inside %s", x?"ON":"OFF");'
+  - id: !extend relay3
+    name: Relay 3 Exterior Lights
+#    on_state:
+#      - lambda: 'id(ExteriorLights).publish_state(x); ESP_LOGI("relay", "Exterior %s", x?"ON":"OFF");'
+  - id: !extend relay2
+    name: Relay 2 Water Pump
+#    on_state:
+#      - lambda: 'id(WaterPump).publish_state(x); ESP_LOGI("relay", "Waterpump %s", x?"ON":"OFF");'
+  - id: !extend relay1
+    name: Relay 1 Starlink
+#    on_state:
+#      - lambda: 'id(Starlink).publish_state(x); ESP_LOGI("relay", "Starlink %s", x?"ON":"OFF");'
+
+          
+# template sensors for all our switches we wish to expose to packet_transport
+binary_sensor:
+# template switches -> binary_sensor -> packet_transport
+# The following states are driven by the automations they represent
+  - platform: template
+    id: vc_soc_enable
+#    lambda: return id(soc_enable).state;
+  - platform: template
+    id: vc_heater_enable
+#    lambda: return id(heater_enable).state;
+  - platform: template
+    id: vc_cabinet_enable
+#    lambda: return id(cabinet_enable).state;
+
+# Relay outputs -> packet transport
+  - platform: switch
+    id: Starlink
+    source_id: relay1
+
+  - platform: switch
+    id: WaterPump
+    source_id: relay2
+
+  - platform: switch
+    id: ExteriorLights
+    source_id: relay3
+
+  - platform: switch
+    id: InteriorLights
+    source_id: relay4
+
+  - platform: template
+    id: Spare
+#    lambda: return id(relay5).state;
+  - platform: template
+    id: BatteryHeater
+#    lambda: return id(relay6).state;
+  - platform: template
+    id: CabinetFan
+#    lambda: return id(relay7).state;
+  - platform: template
+    id: SolarConnected
+#    lambda: return !id(relay8).state;
+
+# switch inputs <- packet transport
+# NB. packet_transport.binary_sensors don't support "on_press" or "on_turn_on"
+  - platform: packet_transport
+    transport_id: switch_transport
+    provider: vandisplay
+    id: sw_starlink
+    on_press:
+      lambda: 'id(relay1).toggle(); ESP_LOGI("relay", "1 Toggle");'
+  - platform: packet_transport
+    transport_id: switch_transport
+    provider: vandisplay
+    id: sw_waterpump
+    on_press:
+      lambda: 'id(relay2).toggle(); ESP_LOGI("relay", "2 Toggle");'
+  - platform: packet_transport
+    transport_id: switch_transport
+    provider: vandisplay
+    id: sw_exterior
+    on_press:
+      lambda: 'id(relay3).toggle(); ESP_LOGI("relay", "3 Toggle");'
+  - platform: packet_transport
+    provider: vandisplay
+    transport_id: switch_transport
+    id: sw_inside
+    on_press:
+      lambda: 'id(relay4).toggle(); ESP_LOGI("relay", "4 Toggle");'

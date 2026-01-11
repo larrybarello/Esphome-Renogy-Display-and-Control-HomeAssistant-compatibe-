@@ -1,0 +1,73 @@
+# These sensors are published by packet_transport to drive relay states.
+binary_sensor:
+  - platform: template
+    id: sw_waterpump
+
+  - platform: template
+    id: sw_inside
+
+  - platform: template
+    id: sw_exterior
+
+  - platform: template
+    id: sw_starlink
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: Starlink
+    name: Relay_Starlink
+    internal: false
+    trigger_on_initial_state: true
+    on_state:
+      lvgl.widget.update:
+        id: bt_starlink
+        state: 
+          checked: !lambda |-
+            bool x = id(Starlink).state;
+            ESP_LOGI("Switch", "Starlink %s", x?"ON":"OFF");
+            return x;
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: WaterPump
+    name: Relay_WaterPump
+    internal: false
+    trigger_on_initial_state: true
+    on_state:
+      lvgl.widget.update:
+        id: bt_waterpump
+        state: 
+          checked: !lambda |-
+            bool x = id(WaterPump).state;
+            ESP_LOGI("Switch", "WaterPump %s", x?"ON":"OFF");
+            return x;
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: ExteriorLights
+    name: Relay_ExteriorLights
+    internal: false
+    trigger_on_initial_state: true
+    on_state:
+      lvgl.widget.update:
+        id: bt_exterior
+        state: 
+          checked: !lambda |-
+            bool x = id(ExteriorLights).state;
+            ESP_LOGI("Switch", "ExteriorLights %s", x?"ON":"OFF");
+            return x;
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: InteriorLights
+    name: Relay_InteriorLights
+    internal: false
+    trigger_on_initial_state: true
+    on_state:
+      lvgl.widget.update:
+        id: bt_inside
+        state: 
+          checked: !lambda |-
+            bool x = id(InteriorLights).state;
+            ESP_LOGI("Switch", "InteriorLights %s", x?"ON":"OFF");
+            return x;

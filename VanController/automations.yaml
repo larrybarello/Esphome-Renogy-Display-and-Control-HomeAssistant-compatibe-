@@ -1,0 +1,176 @@
+# user inputs, exposed to the front end (HA) for remote control, all sliders
+# any state change causes underlying automation (script) to run and re-evaluate output.
+number:
+  - platform: template
+    name: Battery Heater Threshold
+    id: battery_temp_threshold
+    min_value: 0
+    max_value: 10  # C
+    unit_of_measurement: "°C"
+    step: 1
+    icon: 'mdi:cog'
+    restore_value: true
+    initial_value: 3
+    optimistic: true
+    on_value:
+      - then:
+          - script.execute: heater_ctrl
+
+  - platform: template
+    name: Solar Max SOC
+    id: solar_max_soc
+    min_value: 20
+    max_value: 90  # C
+    step: 1
+    icon: 'mdi:cog'
+    restore_value: true
+    initial_value: 85
+    optimistic: true
+    unit_of_measurement: '%'
+    on_value: # lambda to insure min always < max
+      - then:
+        - lambda: |-
+            if (id(solar_min_soc).state > x)
+            {
+              auto foo = id(solar_min_soc).make_call();
+              foo.set_value(x-1);
+              foo.perform();
+            }
+        - script.execute: solar_ctrl
+
+  - platform: template
+    name: Solar Min SOC
+    id: solar_min_soc
+    min_value: 20
+    max_value: 90  # C
+    step: 1
+    icon: 'mdi:cog'
+    restore_value: true
+    initial_value: 80
+    optimistic: true
+    unit_of_measurement: '%'
+    on_value: # lambda to insure max always > min
+      - then:
+        - lambda: |-
+            if (id(solar_max_soc).state < x)
+            {
+              auto foo = id(solar_max_soc).make_call();
+              foo.set_value(x+1);
+              foo.perform();
+            }
+        - script.execute: solar_ctrl
+
+  - platform: template
+    name: Cabinet Fan Temperature
+    id: cabinet_temp
+    min_value: 30
+    max_value: 80  # C
+    step: 1
+    icon: 'mdi:cog'
+    restore_value: true
+    initial_value: 50
+    optimistic: true
+    unit_of_measurement: "°C"
+    on_value:
+      - then:
+          - script.execute: cabinet_ctrl
+
+switch:
+    # Template switches as binary flags for automations, run automations upon state change
+    # for some reason template switches don't implement "on_state" automation
+  - platform: template
+    id: heater_enable
+    name: Battery Heater Enable
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      - script.execute: heater_ctrl
+    on_turn_off:
+      - script.execute: heater_ctrl
+
+  - platform: template
+    id: soc_enable
+    name: Solar SOC Enable
+    inverted: true
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      - script.execute: solar_ctrl
+    on_turn_off:
+      - script.execute: solar_ctrl
+
+  - platform: template
+    id: cabinet_enable
+    name: Cabinet Fan Enable
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      - script.execute: cabinet_ctrl
+    on_turn_off:
+      - script.execute: cabinet_ctrl
+
+interval:
+  # cheesy automations.  
+  - interval: 10s
+    then:
+      - script.execute: solar_ctrl
+      - script.execute: cabinet_ctrl
+      - script.execute: heater_ctrl
+
+script:
+  - id: solar_ctrl
+    mode: single
+    then:
+      - lambda: |-  # Solar Relay (8) disconnects "active"
+          // ESP_LOGW("Solar", "ena %d soc %.0f min %.0f max %.0f eng %.0f relay %d", 
+          //          id(soc_enable).state, id(battery_soc).state, id(solar_min_soc).state,
+          //          id(solar_max_soc).state, id(dcc50s_service_current).state, id(relay8).state
+          //        );
+
+          // Cutoff huristically determined. 
+          if (id(dcc50s_service_current).state > 10.0) {  // e.g. is alternator spinning
+            id(relay8).turn_on();
+          }
+          else if (id(soc_enable).state) {
+            if (id(relay8).state == true) {
+              if (id(battery_soc).state < id(solar_min_soc).state) {
+                id(relay8).turn_off();
+              }
+            } else {
+              if (id(battery_soc).state > id(solar_max_soc).state) {
+                id(relay8).turn_on();
+              }
+            }
+          }
+          else {
+            id(relay8).turn_off();
+          }
+          // push out state to binary sensor -> packet transport -> display
+          id(vc_soc_enable).publish_state(id(soc_enable).state);
+
+  - id: cabinet_ctrl
+    mode: single
+    then:
+      - lambda: |-  # Cabinet fan
+          // Cabinet fan activated when charger temperature exceeds 50C
+          if (id(cabinet_enable).state && id(dcc50s_charger_temp).state > id(cabinet_temp).state)
+            id(relay7).turn_on();
+          else
+            id(relay7).turn_off();
+          id(vc_cabinet_enable).publish_state(id(cabinet_enable).state);
+
+  - id: heater_ctrl
+    mode: single
+    then:
+      - lambda: |-  # Battery heater (original Renogy Smart Lithium w/o heater)
+          // Battery heater control (BUGBUG: what if temp is "none". Answ: the clause fails)
+          // Qualify by "charging", "enabled" and heater pad < 30C
+          if (id(heater_enable).state && id(dcc50s_status).state > 0 &&
+              id(battery_temp).state < id(battery_temp_threshold).state && 
+              id(battery_heater_C).state < 30) {
+            id(relay6).turn_on();
+          }
+          else {
+            id(relay6).turn_off();
+          }
+          id(vc_heater_enable).publish_state(id(heater_enable).state);

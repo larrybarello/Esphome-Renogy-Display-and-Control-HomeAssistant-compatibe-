@@ -1,0 +1,60 @@
+# Refrigerator sensors and binary sensors driving the display
+
+sensor:
+  - platform: packet_transport
+    provider: refrigerator
+    id: room_humidity
+
+  - platform: packet_transport
+    provider: refrigerator
+    id: room_temp
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_room_temp
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.0f %s %.0f%c", x, id(unit_select).state?"°F":"°C", id(room_humidity).state, '%');
+              return std::string(buf);
+
+  - platform: packet_transport
+    provider: refrigerator
+    id: freezer_temp
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_freezer_temp
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.0f %s", x, id(unit_select).state?"°F":"°C");
+              return std::string(buf);
+
+  - platform: packet_transport
+    provider: refrigerator
+    id: refer_temp
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_refer_temp
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.0f %s", x, id(unit_select).state?"°F":"°C");
+              return std::string(buf);
+
+binary_sensor:
+  - platform: packet_transport
+    provider: refrigerator
+    id: refer_enable
+    trigger_on_initial_state: true
+    on_state:
+      then:
+        - lvgl.label.update:
+            id: w_refer_power
+            text: !lambda |-
+              return x?std::string("ON"):std::string("OFF");
+        - lvgl.widget.redraw: w_refer_power
+
+  - platform: packet_transport
+    provider: refrigerator
+    id: unit_select
+

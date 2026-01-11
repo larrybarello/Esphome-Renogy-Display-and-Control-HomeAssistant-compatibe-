@@ -1,0 +1,77 @@
+# packet_trasport sensors for house battery driving display widgets
+# this is a package, not an include.
+
+sensor:
+  - platform: packet_transport
+    provider: vancontroller
+    id: battery_voltage
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_house_voltage
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.1f V", x);
+              return std::string(buf);  
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: battery_current
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_house_current
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.1f A", x);
+              return std::string(buf);  
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: battery_temp
+#    on_value:
+#      then:
+#        - lvgl.label.update:
+#            id: w_battery_temp
+#            text: !lambda |-
+#              char buf [16];
+#              snprintf(buf, sizeof(buf), "%.1f %s", x, id(temp_unit_select).state?"°F":"°C");
+#              return std::string(buf);
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: battery_soc
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_house_soc
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.0f%%", x);
+              return std::string(buf);  
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: battery_capacity
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_house_capacity
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.0f Ah", x);
+              return std::string(buf);
+
+  - platform: packet_transport
+    provider: vancontroller 
+    id: battery_size
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_house_remaining
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.0f aH", x);
+              return std::string(buf);
+
+# end of package

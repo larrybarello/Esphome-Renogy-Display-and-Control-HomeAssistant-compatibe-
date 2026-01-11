@@ -1,0 +1,35 @@
+# top level hardware definition for the Waveshare ESP32-S3-ETH-8DI-8RO controller
+
+# Waveshare ESP32-S3-ETH-8DI-8RO uses ESP32-S3-WROOM-1U-N16R8
+# -> 16 MB flash
+# -> 8 MB psram
+esp32:
+  variant: esp32s3
+  board: esp32s3box
+  flash_size: 16MB
+  framework:
+    type: esp-idf
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+# I2C bus for pca9554 io expander
+i2c:
+  sda: GPIO42
+  scl: GPIO41
+  scan: false
+  frequency: 100kHz
+  id: i2cbus
+
+
+# see: https://esphome.io/components/time.html
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+    on_time_sync:
+      then:
+        # Update the RTC when the synchronization was successful
+        pcf85063.write_time:
+  - platform: pcf85063
+    id: pcf85063_time

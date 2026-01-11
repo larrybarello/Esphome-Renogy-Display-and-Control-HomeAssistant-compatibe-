@@ -1,0 +1,77 @@
+globals:
+  - id: display_timeout
+    type: int
+    initial_value: '30'
+    restore_value: true
+
+esphome:
+  on_boot:
+    then:
+      - lvgl.slider.update:
+          id: w_display_timeout_slider
+          value: !lambda return id(display_timeout);
+      
+wifi:
+  on_connect:
+#    - lvgl.label.update:
+#        id: w_ap_name
+#        text: !lambda return id(ap_name).get_state();
+#    - lvgl.label.update:
+#        id: w_ip_adx
+#        text: !lambda return id(ip_adx).get_state();
+    - lvgl.label.update:
+        id: w_ip_adx
+        text: !lambda |-
+          return (id(ap_name).state + "\n" + id(ip_adx).state).c_str();
+        
+  
+lvgl:
+  resume_on_input: true
+#  default_font: montserrat_28
+
+  on_idle:
+    timeout: !lambda "return id(display_timeout) * 1000;"
+    then:
+      - light.turn_off: display_backlight
+      - lvgl.pause:
+  on_resume:
+    then:
+      - light.turn_on: display_backlight
+  
+  theme:
+    label:
+      text_font: helvetica_20
+      text_align: CENTER
+      grid_cell_y_align: STRETCH
+      grid_cell_x_align: STRETCH
+#    button:
+#      bg_color: 0x0000FF
+#      bg_opa: COVER
+#      checked:
+#        bg_color: 0xFF0000
+#      pressed:
+#        bg_color: 0x00FF00
+      
+
+  style_definitions: !include lv_van_styles.yaml
+
+  pages:
+    - id: room_page
+      widgets:
+        - obj:
+            align: BOTTOM_MID
+            width: ${main_page_w}
+            height: ${main_page_h}
+            bg_opa: COVER
+            pad_all: 3
+            layout: 
+              type: FLEX
+              flex_flow: ROW_WRAP
+              flex_align_track: space_around
+            widgets:
+              - obj: !include lv_house.yaml
+              - obj: !include lv_refrigerator.yaml
+              - obj: !include lv_dcc50s.yaml
+              - obj: !include lv_switches.yaml
+              - obj: !include lv_wifi.yaml
+

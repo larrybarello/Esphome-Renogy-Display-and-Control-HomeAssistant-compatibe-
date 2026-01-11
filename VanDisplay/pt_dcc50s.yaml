@@ -1,0 +1,156 @@
+# package for Renogy DCC50S charge controller packet_transport sensors
+# this is a package, not an include.
+
+sensor:
+  - platform: packet_transport
+    provider: vancontroller
+    id: dcc50s_house_voltage
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_house_V
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.1f V", x);
+              return std::string(buf);
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: dcc50s_house_current
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_house_A
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.1f A", x);
+              return std::string(buf);
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: dcc50s_house_power
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_house_W
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.1f W", x);
+              return std::string(buf);
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: dcc50s_solar_voltage
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_solar_V
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.1f V", x);
+              return std::string(buf);
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: dcc50s_solar_current
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_solar_A
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.1f A", x);
+              return std::string(buf);
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: dcc50s_solar_power
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_solar_W
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.1f W", x);
+              return std::string(buf);
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: dcc50s_service_voltage
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_service_V
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.1f V", x);
+              return std::string(buf);
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: dcc50s_service_current
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_service_A
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.1f A", x);
+              return std::string(buf);
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: dcc50s_service_power
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_service_W
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.1f W", x);
+              return std::string(buf);
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: dcc50s_status
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_charger_status
+            text: !lambda |-
+              switch(static_cast<int>(x)) {
+                case 0:  return std::string("not charging");
+                case 2:  return std::string("Solar");
+                case 3:  return std::string("Equalization");
+                case 4:  return std::string("Boost");
+                case 5:  return std::string("Float");
+                case 6:  return std::string("Charging");
+                case 8:  return std::string("Alternator");
+                default: return std::string("Error/Unknown");
+              }
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: dcc50s_charger_temp
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_charger_temp
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.1f °C", x);
+              return std::string(buf);
+
+  - platform: packet_transport
+    provider: vancontroller
+    id: dcc50s_charge_cycles
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: w_cycles
+            text: !lambda |-
+              char buf [16];
+              snprintf(buf, sizeof(buf), "%.0f", x);
+              return std::string(buf);  
+
+# 

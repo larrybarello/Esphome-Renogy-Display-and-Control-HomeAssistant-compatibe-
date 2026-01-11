@@ -1,0 +1,28 @@
+
+udp:
+
+packet_transport:
+  - platform: udp
+    update_interval: 5s
+    sensors:
+      - freezer_temp
+      - refer_temp
+      - room_temp
+      - room_humidity
+#      - refer_sp_C # this is a number, we need to template it to a sensor.
+    binary_sensors:
+      - compressor_power
+      - refer_enable
+      - unit_select
+
+
+esphome:
+  - on_boot:
+    then:
+      - script.execute: whoami
+
+script:
+  - id: whoami
+    then:
+      - delay: 10s
+      - lambda: ESP_LOGI("transport", "using UDP transport");

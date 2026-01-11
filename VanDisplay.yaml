@@ -1,0 +1,61 @@
+substitutions:
+  device_name: vandisplay
+  display_rotation: 90
+  main_page_w: 100%
+  main_page_h: 100%
+  header_font: helvetica_30
+  label_font: helvetica_18
+  button_font: helvetica_30
+  button_width: 100%
+  button_height: 270
+
+  udp_transport: !include VanDisplay/van_udp.yaml
+  now_transport: !include VanDisplay/van_now.yaml
+
+display:
+  - id: !extend my_display
+    rotation: ${display_rotation}
+
+touchscreen:
+  - id: !extend my_touchscreen
+    # why isn't this done by the display driver?
+    transform:
+      swap_xy: true
+      mirror_y: true # Mirror this for 90
+      mirror_x: false  # mirror this for 270
+
+lvgl:
+  byte_order: big_endian  #default
+  color_depth: 16         #default
+
+esphome:
+  name: ${device_name}
+  friendly_name: 'Van Display'
+  comment: Waveshare esp32-S3-7B display
+
+# Enable logging
+logger:
+  level: INFO
+
+packages:
+  # conditional include of packet transport
+#  f1: ${ display_udp if (udp | int(default=0)) else display_now }
+  f1: ${ udp_transport if (transport | lower) == "udp" else {}}
+  f2: ${ now_transport if (transport | lower) == "espnow" else {}}
+
+  display: !include 
+    file: library/waveshare-esp32-s3-touch-lcd-7B.yaml
+  wifi:   !include
+    file: library/wifi_common.yaml
+  lvgl: !include
+    file: VanDisplay/lv_van.yaml
+  pt_refer: !include
+    file: VanDisplay/pt_refrigerator.yaml
+  pt_house: !include
+    file: VanDisplay/pt_house.yaml  
+  pt_cntl: !include
+    file: VanDisplay/pt_dcc50s.yaml
+  font: !include
+    file: VanDisplay/lv_van_fonts.yaml
+  sw: !include
+    file: VanDisplay/pt_switches.yaml

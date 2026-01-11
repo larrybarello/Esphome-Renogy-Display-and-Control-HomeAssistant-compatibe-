@@ -1,0 +1,72 @@
+# refrigerator display
+#- obj: # a properly placed container object for all these controls
+    width: ${button_width}
+    height: ${button_height}
+    pad_all: 6
+    border_width: 2
+    border_color: black
+    radius: 18
+    bg_color: white
+    layout: # enable the GRID layout for the children widgets
+      type: GRID
+      grid_columns: [FR(1), FR(1)] # equal
+      grid_rows: [FR(1), FR(1)] # like percents
+      pad_row: 6
+      pad_column: 8
+    widgets:
+      # First row
+      - button:
+          id: bt_starlink
+          grid_cell_x_align: STRETCH
+          grid_cell_y_align: STRETCH
+          on_press:
+            - lambda: id(sw_starlink).publish_state(true); ESP_LOGI("Starlink", "pressed");
+          on_release:
+            - lambda: id(sw_starlink).publish_state(false); ESP_LOGI("Starlink", "released");
+          widgets:
+            - label:
+                align: center
+                text_font: ${button_font}
+                text: "STARLINK\nPOWER"
+      - button:
+          id: bt_waterpump
+          grid_cell_x_align: STRETCH
+          grid_cell_y_align: STRETCH
+          on_press:
+            - lambda: id(sw_waterpump).publish_state(true); ESP_LOGI("waterpump", "pressed");
+          on_release:
+            - lambda: id(sw_waterpump).publish_state(false); ESP_LOGI("waterpump", "released");
+          widgets:
+            - label:
+                align: center
+                text_font: ${button_font}
+                text: "WATER\nPUMP"
+      # second row
+      - button:
+          id: bt_exterior
+          grid_cell_x_align: STRETCH
+          grid_cell_y_align: STRETCH
+          on_press:
+            - lambda: id(sw_exterior).publish_state(true); ESP_LOGI("exterior", "pressed");
+          on_release:
+            - lambda: id(sw_exterior).publish_state(false); ESP_LOGI("exterior", "released");
+          widgets:
+            - label:
+                align: center
+                text_font: ${button_font}
+                text: "OUTSIDE\nLIGHTS"
+      # First row
+      - button:
+          id: bt_inside
+          grid_cell_x_align: STRETCH
+          grid_cell_y_align: STRETCH
+          on_press:
+            - lambda: id(sw_inside).publish_state(true); ESP_LOGI("inside", "pressed");
+          on_release:
+            - lambda: id(sw_inside).publish_state(false); ESP_LOGI("inside", "released");
+          widgets:
+            - label:
+                align: center
+                text_font: ${button_font}
+                text: "INSIDE\nLIGHTS"
+

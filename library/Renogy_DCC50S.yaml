@@ -1,0 +1,210 @@
+# Include file detailing registers we are interested in from the Renogy DCC50S charge controller
+# see ESPHome "van-electrical" project for usage
+modbus_controller:
+  - id: ${modbus_id}
+    address: ${device_adx}
+    setup_priority: -10
+    update_interval: ${interval}
+    max_cmd_retries: 0
+    offline_skip_updates: 3
+    on_online:
+      then:
+        - logger.log: ${modbus_id} online
+    on_offline:
+      then:
+        - logger.log: ${modbus_id} offline
+    on_command_sent:
+      then:
+        - logger.log: 
+            format: ${modbus_id} command sent
+            level: info
+
+#
+sensor:
+  - id: ${modbus_id}_house_voltage
+    name: ${modbus_id} House Battery Voltage
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 0x0101
+    unit_of_measurement: 'V'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.1
+
+  - id: ${modbus_id}_house_current
+    name: ${modbus_id} House Battery Current
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 0x0102
+    unit_of_measurement: 'A'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: .01
+
+  - id: ${modbus_id}_charger_temp
+    name: ${modbus_id} Charger Temperature
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 0x0103
+    unit_of_measurement: "°C"
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    lambda: |-
+      int8_t temp = ((int)x >> 8) & 0x7F;
+      return ((int)x & 0x8000)?-temp:temp;
+      
+  - id: ${modbus_id}_house_temp
+    name: ${modbus_id} House Battery Temperature
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 0x0103
+    unit_of_measurement: "°C"
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    lambda: |-
+      int8_t temp = (int)x & 0x7F;
+      return ((int)x & 0x80)?-temp:temp;
+
+  - id: ${modbus_id}_service_voltage
+    name: ${modbus_id} Service Battery Voltage
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 0x0104
+    unit_of_measurement: 'V'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - id: ${modbus_id}_service_current
+    name: ${modbus_id} Service Battery Current
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 0x0105
+    unit_of_measurement: 'A'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      #- multiply: 0.01
+      # When status is "solar" then the service battery can be charged.
+      # All other states the service battery supplies current to the system
+      # so use < 0 to indicate battery being charge.
+      - lambda: |-
+          if (id(${modbus_id}_charge_status).state == "solar")
+            return -x * .01;
+          else
+            return x * .01;
+
+  - id: ${modbus_id}_service_power
+    name: ${modbus_id} Service Battery Power
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 0x0106
+    unit_of_measurement: 'W'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 0
+
+  - id: ${modbus_id}_solar_voltage
+    name: ${modbus_id} Solar Input Voltage
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 0x0107
+    unit_of_measurement: 'V'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - id: ${modbus_id}_solar_current
+    name: ${modbus_id} Solar Input Current
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 0x0108
+    unit_of_measurement: 'A'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+
+  - id: ${modbus_id}_solar_power
+    name: ${modbus_id} Solar Input Power
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 0x0109
+    unit_of_measurement: 'W'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 0
+
+    register_count: 14
+
+  - id: ${modbus_id}_charge_cycles
+    name: ${modbus_id} Charge Cycles
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 0x0117
+    register_type: holding
+    value_type: U_WORD  
+
+    register_count: 8
+  
+  - id: ${modbus_id}_house_power
+    name: ${modbus_id} House Power
+    platform: template
+    unit_of_measurement: 'W'
+    accuracy_decimals: 0
+    lambda: return id(${modbus_id}_house_voltage).state * id(${modbus_id}_house_current).state;
+
+  - id: ${modbus_id}_status
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 0x0120
+    register_type: holding
+    value_type: U_WORD
+    lambda: |-
+      return x;
+
+# for HA and local display only.  packet_transport can't handle text sensor.
+text_sensor:
+  - id: ${modbus_id}_charge_status
+    name: ${modbus_id} Charger status
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 0x0120
+    register_type: holding
+    raw_encode: HEXBYTES
+    lambda: |-
+      uint8_t foo = modbus_controller::word_from_hex_str(x, 0);
+      switch(foo & 0xF)
+      {
+        case 0:  return std::string("not charging");
+        case 2:  return std::string("Solar");
+        case 3:  return std::string("Equalization");
+        case 4:  return std::string("Boost");
+        case 5:  return std::string("Float");
+        case 6:  return std::string("Charging");
+        case 8:  return std::string("Alternator");
+        default: return std::string("Error/Unknown");
+      }
+
+
+
+
+
+
+
+
+
+
+

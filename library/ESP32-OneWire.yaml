@@ -1,0 +1,16 @@
+# sensor package for VanController relay board
+
+one_wire:
+  - platform: gpio
+    pin: GPIO21   # Pin 18-20 on header (V+, G, signal)
+
+sensor:
+  - platform: dallas_temp
+    unit_of_measurement: "°C"
+    state_class: "measurement"
+    device_class: "temperature"
+    update_interval: 10s
+    id: battery_heater_C    # not exposed directly to HA, go through template that does C/F conversion
+    name: 'Battery Heater Temp C'
+    filters:
+      - filter_out: nan

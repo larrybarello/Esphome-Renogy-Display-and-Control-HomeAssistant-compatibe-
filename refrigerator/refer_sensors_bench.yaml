@@ -1,0 +1,56 @@
+# bench T-DISPLAY-S3 is wired differently than the on in the van, arguably
+# a better topology, more stable and allows replacement of sensors w/o code change.
+
+one_wire:
+  - platform: gpio
+    pin: GPIO21
+    id: dallas_freezer
+    
+  - platform: gpio
+    pin: GPIO18
+    id: dallas_refer
+
+sensor:
+  - platform: dallas_temp
+    one_wire_id: dallas_refer
+#    address: 0x893ce10457532928
+    unit_of_measurement: "°C"
+    state_class: "measurement"
+    device_class: "temperature"
+#    update_interval: 10s
+    id: refer_temp_C    # not exposed directly to HA, go through template that does C/F conversion
+    name: 'Refer temp C'
+    filters:
+      - filter_out: nan
+
+  - platform: dallas_temp
+    one_wire_id: dallas_freezer
+#    address: 0x4b3ce1045793f628
+    unit_of_measurement: "°C"
+    state_class: "measurement"
+    device_class: "temperature"
+#    update_interval: 10s
+    id: freezer_temp_C
+    name: 'Freezer temp C'
+    filters:
+      - filter_out: nan
+    
+  - platform: dht
+    pin: GPIO16
+    id: dht_hub
+#    update_interval: 10s
+    
+    temperature:
+      id: room_temp_C
+      name: 'Room temp C'   # expose to HA for display purposes
+      unit_of_measurement: "°C"
+      state_class: "measurement"
+      device_class: "temperature"
+      filters:
+        - filter_out: nan
+
+    humidity:
+      name: Room Humidity
+      id: room_humidity
+      filters:
+        - filter_out: nan

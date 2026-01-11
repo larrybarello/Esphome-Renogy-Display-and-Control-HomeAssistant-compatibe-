@@ -1,0 +1,66 @@
+sensor:
+# Template sensors that combine all batteries into a single value
+# Unfortunately there is no run time method to automate the 
+# number of batteries being summed.
+
+  - platform: template
+    id: battery_capacity
+    name: House Battery Capacity
+    update_interval: ${interval}
+    unit_of_measurement: AH
+    lambda: |-
+      return  id(battery1capacity).state + 
+              id(battery2capacity).state + 
+              id(battery3capacity).state;
+
+  - platform: template
+    id: battery_size
+    name: House Battery size
+    unit_of_measurement: AH
+    update_interval: ${interval}
+    lambda: |-
+      return  id(battery1size).state + 
+              id(battery2size).state + 
+              id(battery3size).state;
+
+  - platform: template
+    id: battery_current
+    name: House Battery current
+    unit_of_measurement: A
+    update_interval: ${interval}
+    lambda: |-
+      return  id(battery1current).state + 
+              id(battery2current).state + 
+              id(battery3current).state;
+
+  - platform: template
+    id: battery_voltage
+    name: House Battery voltage
+    unit_of_measurement: V
+    update_interval: ${interval}
+    lambda: |-
+      return  (id(battery1voltage).state + 
+              id(battery2voltage).state + 
+              id(battery3voltage).state) / 3;
+
+  - platform: template
+    id: battery_temp
+    name: House Battery temperature
+    unit_of_measurement: "°C"
+    update_interval: ${interval}
+    lambda: |-
+      return  (id(battery1temp).state + 
+              id(battery2temp).state + 
+              id(battery3temp).state) / 3;
+
+  - platform: template
+    id: battery_soc
+    name: House Battery soc
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    update_interval: ${interval}
+    lambda: |-
+      return 100 * id(battery_capacity).state/id(battery_size).state;
+#      float size = id(battery1size).state + id(battery2size).state + id(battery3size).state;
+#      float capacity  = id(battery1capacity).state + id(battery2capacity).state + id(battery3capacity).state;
+#      return  100 * capacity/size;

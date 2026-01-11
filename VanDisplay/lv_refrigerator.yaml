@@ -1,0 +1,45 @@
+# refrigerator display
+#- obj: 
+  id: refrigerator_container
+  width: 100%
+  height: 140
+  pad_all: 6
+  border_width: 2
+  border_color: black
+  radius: 18
+  layout: # enable the GRID layout for the children widgets
+    type: GRID
+    grid_columns: [FR(1), FR(1), FR(1), FR(1)] # equal
+    grid_rows: [FR(2), FR(1), FR(1)] # like percents
+    pad_row: 6
+    pad_column: 8
+  widgets:
+    # First row, the group header
+    - label:
+        styles: header_style
+        grid_cell_column_span: 4
+        text: REFRIGERATOR
+        text_align: LEFT
+    # Next row, header
+    - label:
+        text: Power
+    - label:
+        text: Room
+    - label:
+        text: Refer
+    - label:
+        text: freezer
+    # second row, values
+    - label:
+        id: w_refer_power
+        text: "-"
+    - label:
+        id: w_room_temp
+        text: "-"
+    - label:
+        id: w_refer_temp
+        text: "-"
+    - label:
+        id: w_freezer_temp
+        text: "-"
+        

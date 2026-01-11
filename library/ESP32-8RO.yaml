@@ -1,0 +1,96 @@
+# relays
+
+# Relays are driven by this.
+pca9554:
+  - id: 'TCA9554_hub'
+    address: 0x20
+    
+switch:
+  - platform: gpio
+    name: "relay 1"
+    id: relay1
+    restore_mode: RESTORE_DEFAULT_OFF
+    pin:
+      pca9554: TCA9554_hub
+      number: 0
+      mode:
+        output: true
+      inverted: false
+
+  - platform: gpio
+    name: "relay 2"
+    id: relay2
+    restore_mode: RESTORE_DEFAULT_OFF
+    pin:
+      pca9554: TCA9554_hub
+      number: 1
+      mode:
+        output: true
+      inverted: false
+
+  - platform: gpio
+    name: "relay 3"
+    id: relay3
+    restore_mode: RESTORE_DEFAULT_OFF
+    pin:
+      pca9554: TCA9554_hub
+      number: 2
+      mode:
+        output: true
+      inverted: false
+
+  - platform: gpio
+    name: "relay 4"
+    id: relay4
+    restore_mode: RESTORE_DEFAULT_OFF
+    pin:
+      pca9554: TCA9554_hub
+      number: 3
+      mode:
+        output: true
+      inverted: false
+
+  - platform: gpio
+    name: "relay 5"
+    id: relay5
+    restore_mode: RESTORE_DEFAULT_OFF
+    pin:
+      pca9554: TCA9554_hub
+      number: 4
+      mode:
+        output: true
+      inverted: false
+
+  - platform: gpio
+    name: "relay 6"
+    id: relay6
+    restore_mode: RESTORE_DEFAULT_OFF
+    pin:
+      pca9554: TCA9554_hub
+      number: 5
+      mode:
+        output: true
+      inverted: false
+
+  - platform: gpio
+    restore_mode: RESTORE_DEFAULT_OFF
+    name: "relay 7"
+    id: relay7
+    pin:
+      pca9554: TCA9554_hub
+      number: 6
+      mode:
+        output: true
+      inverted: false
+
+  - platform: gpio
+    name: "relay 8"
+    id: relay8
+    restore_mode: RESTORE_DEFAULT_OFF
+    pin:
+      pca9554: TCA9554_hub
+      number: 7
+      mode:
+        output: true
+      inverted: false
+

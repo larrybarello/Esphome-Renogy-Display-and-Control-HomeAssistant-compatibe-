@@ -1,0 +1,49 @@
+# refrigerator display
+#- obj: # a properly placed container object for all these controls
+    width: 100%
+    height: 140
+    pad_all: 6
+    border_width: 2
+    border_color: black
+    radius: 18
+    bg_color: white
+    layout: # enable the GRID layout for the children widgets
+      type: GRID
+      grid_columns: [FR(1), FR(1), FR(1), FR(1), FR(1)] # equal
+      grid_rows: [FR(2), FR(1), FR(1)] # like percents
+      pad_row: 6
+      pad_column: 8
+    widgets:
+      # First row, the group header
+      - label:
+          styles: header_style
+          grid_cell_column_span: 5
+          text: HOUSE BATTERY
+          text_align: LEFT
+      # Next row, header
+      - label:
+          text: Voltage
+      - label:
+          text: Current
+      - label:
+          text: SOC
+      - label:
+          text: Capacity
+      - label:
+          text: Size
+      # second row, values
+      - label:
+          id: w_house_voltage
+          text: V
+      - label:
+          id: w_house_current
+          text: A
+      - label:
+          id: w_house_soc
+          text: "%"
+      - label:
+          id: w_house_remaining
+          text: "aH"
+      - label:
+          id: w_house_capacity
+          text: Ah

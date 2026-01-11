@@ -1,0 +1,19 @@
+- id: header_style
+  pad_all: 4
+  text_align: CENTER
+  text_font: ${header_font}
+  width: 100%
+
+- id: item_style
+  pad_all: 4
+  text_align: CENTER
+  text_font: ${label_font}
+  width: 25%
+  height: 100%
+
+- id: label_style
+  pad_all: 4
+  text_align: CENTER
+  text_font: ${label_font}
+  width: 25%
+  height: 100%

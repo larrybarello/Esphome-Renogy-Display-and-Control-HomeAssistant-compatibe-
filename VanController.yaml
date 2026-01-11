@@ -1,0 +1,155 @@
+substitutions:
+  device_name: "vancontroller"
+  device_comment: "WaveShare ESP32-S3-POE-ETH-8DI-8RO device"
+  device_friendly: "Van Controller"
+  charger_id: "dcc50s"
+  battery1_id: "battery1"
+  battery2_id: "battery2"
+  battery3_id: "battery3"
+
+ # default build is for Tab5 display
+  transport: 'udp'
+  udp_transport:  !include VanController/controller_udp_transport.yaml
+  now_transport:  !include VanController/controller_espnow_transport.yaml
+
+# common files for Renogy products and Waveshare relay board
+packages:
+  cntrl:  !include
+    file: library/waveshare-esp32-s3-8di-8ro.yaml
+  wifi:   !include
+    file: library/wifi_common.yaml
+  relays: !include
+    file: library/ESP32-8RO.yaml
+  inputs: !include
+    file: library/ESP32-8DI.yaml
+  temps:  !include
+    file: library/ESP32-OneWire.yaml
+  auto:   !include
+    file: VanController/automations.yaml
+  sw:     !include
+    file: VanController/switch_sensor_buttons.yaml
+
+  f1: ${ udp_transport if (transport | lower) == "udp" else {}}
+  f2: ${ now_transport if (transport | lower) == "espnow" else {}}
+#  foo: ${ udp_transport if (udp | int(default=0)) else now_transport } # these work, but funky
+#  foo: ${ udp_transport if (udp) else now_transport }
+
+
+  battery1: !include
+    file: library/Renogy_Battery.yaml
+    vars:
+      modbus_id: ${battery1_id}
+      device_adx: 48
+      interval: 10s
+  battery2: !include
+    file: library/Renogy_Battery.yaml
+    vars:
+      modbus_id: ${battery2_id}
+      device_adx: 49
+      interval: 10s
+  battery3: !include
+    file: library/Renogy_Battery.yaml
+    vars:
+      modbus_id: ${battery3_id}
+      device_adx: 50
+      interval: 10s
+  dcc50s: !include
+    file: library/Renogy_DCC50S.yaml
+    vars:
+      modbus_id: ${charger_id}
+      device_adx: 96
+      interval: 10s
+# NB. edit this file for the number of batteries in system
+  house: !include 
+    file: library/house_battery.yaml
+    vars:
+      interval: 10s
+    
+# custom stuff below here.
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${device_friendly}
+#  min_version: 2025.5.0
+  comment: ${device_comment}
+  name_add_mac_suffix: false
+  on_boot:
+    priority: -100
+    then:
+      - pcf85063.read_time
+#      - logger.set_level: debug
+      - logger.set_level: info
+#      - logger.set_level: warn
+#      - logger.set_level: error
+#      - logger.set_level: none
+      - lambda: |-
+          id(sw_starlink).publish_state(id(relay1).state);
+          id(sw_waterpump).publish_state(id(relay2).state);
+          id(sw_exterior).publish_state(id(relay3).state);
+          id(sw_inside).publish_state(id(relay4).state);
+
+esp32:
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_LWIP_MAX_SOCKETS: "32"
+
+preferences:
+  flash_write_interval: 0s
+
+# Enable logging
+logger:
+#  baud_rate: 0  # disable serial
+  level: WARN
+
+wifi:
+  on_connect:   # add to common package
+    - light.turn_on: 
+        id: rgb_led
+        brightness: 20%
+  power_save_mode: LIGHT
+
+
+
+# RS485 / Modbus
+uart:
+  - id: modbus_uart
+    tx_pin: GPIO17
+    rx_pin: GPIO18
+    baud_rate: 9600
+    stop_bits: 1  # default to 8E1
+    data_bits: 8  # default to 8E1
+    parity: NONE  # default to 8E1
+    rx_timeout: 2 # default
+
+modbus:
+  uart_id: modbus_uart
+  send_wait_time: 50ms
+#  flow_control_pin: ??
+
+
+sensor:
+#wifi sensor
+  - platform: wifi_signal
+    name: WiFi Signal Strength
+    id: wifi_dbm
+    entity_category: diagnostic
+    update_interval: 60s
+
+#uptime sensor
+text_sensor:
+  - platform: uptime
+    name: uptime
+    id: sensor_uptime
+    update_interval: 5s
+
+# RGB LED
+light:
+  - platform: esp32_rmt_led_strip
+    rgb_order: RGB
+    chipset: WS2812
+    pin: GPIO38
+    num_leds: 1
+    name: "rgb led"
+    id: rgb_led
+

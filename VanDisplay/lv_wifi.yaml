@@ -1,0 +1,55 @@
+# screen panel to indicate when connected to an AP
+# refrigerator display
+#- obj: # a properly placed container object for all these controls
+width: 100%
+height: 140
+pad_all: 6
+border_width: 2
+border_color: black
+radius: 18
+bg_color: white
+layout: # enable the GRID layout for the children widgets
+    type: GRID
+    grid_columns: [FR(2), FR(4), FR(1)]
+    grid_rows: [FR(1), FR(1)] # like percents
+    pad_row: 6
+    pad_column: 8
+widgets:
+    # First row, the group header
+    - label:
+          styles: header_style
+          grid_cell_column_span: 3
+          text: SYSTEM DISPLAY
+          text_align: LEFT
+          text_font: helvetica_36
+    #      - label:
+    #          id: w_ap_name
+    #          text: "?"
+    - label:
+          id: w_ip_adx
+          text: "?"
+    - slider:
+          id: w_display_timeout_slider
+          min_value: 10
+          max_value: 240 # 1-4 minutes NB: FLOAT
+#          width: 100%
+          align: CENTER
+          on_value:
+              - lambda: |-
+                    id(display_timeout) = int(x);
+              - lvgl.label.update:
+                    id: w_display_timeout
+                    text: !lambda |-
+                        char buf[32];
+                        div_t dv = { .quot = (int)x};
+                        dv = div(dv.quot, 60);
+                        if (dv.quot) {
+                          snprintf(buf, sizeof(buf), "%d:%02d min", dv.quot, dv.rem);
+                        } else {
+                          snprintf(buf, sizeof(buf), "%02d sec", dv.rem);
+                        }
+                        return (buf);
+    - label:
+          id: w_display_timeout
+          text: " "
+          text_align: LEFT

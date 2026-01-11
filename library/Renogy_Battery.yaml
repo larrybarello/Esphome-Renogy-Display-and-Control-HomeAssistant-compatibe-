@@ -1,0 +1,202 @@
+# Packages include file for Renogy "smart" lithium battery modbus. 
+# 
+modbus_controller:
+  - id: ${modbus_id}
+    address: ${device_adx}
+    setup_priority: -10
+    update_interval: ${interval}
+    max_cmd_retries: 0
+    offline_skip_updates: 3
+    on_online:
+      then:
+        - logger.log: ${modbus_id} online
+    on_offline:
+      then:
+        - logger.log: ${modbus_id} offline
+    on_command_sent:
+      then:
+        - logger.log:
+            format: ${modbus_id} command sent
+            level: info
+
+sensor:
+# Granular cell values
+  - id: ${modbus_id}_v_cell1
+    name: ${modbus_id} Voltage Cell 1
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 5001
+    unit_of_measurement: 'V'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    force_new_range: false
+    filters:
+      - multiply: 0.1
+  - id: ${modbus_id}_v_cell2
+    name: ${modbus_id} Voltage Cell 2
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 5002
+    unit_of_measurement: 'V'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+  - id: ${modbus_id}_v_cell3
+    name: ${modbus_id} Voltage Cell 3
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 5003
+    unit_of_measurement: 'V'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+  - id: ${modbus_id}_v_cell4
+    name: ${modbus_id} Voltage Cell 4
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 5004
+    unit_of_measurement: 'V'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+      
+    register_count: 14    # span to the next block of sensors (temp)
+
+  - id: ${modbus_id}_t_cell1
+    name: ${modbus_id} Temp Cell 1
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 5018
+    unit_of_measurement: "°C"
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - id: ${modbus_id}_t_cell2
+    name: ${modbus_id} Temp Cell 2
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 5019
+    unit_of_measurement: "°C"
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - id: ${modbus_id}_t_cell3
+    name: ${modbus_id} Temp Cell 3
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 5020
+    unit_of_measurement: "°C"
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - id: ${modbus_id}_t_cell4
+    name: ${modbus_id} Temp Cell 4
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 5021
+    unit_of_measurement: "°C"
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+  
+  - id: ${modbus_id}temp
+    platform: template
+    name: ${modbus_id} battery temperature
+    unit_of_measurement: "°C"
+    update_interval: ${interval}
+    lambda: |-
+      return (id(${modbus_id}_t_cell1).state +
+              id(${modbus_id}_t_cell2).state +
+              id(${modbus_id}_t_cell3).state +
+              id(${modbus_id}_t_cell4).state) /4;
+
+ 
+# General battery values
+#  - id: ${modbus_id}_bms_temp
+#    name: ${modbus_id} BMS Temperature
+#    platform: modbus_controller
+#    modbus_controller_id: ${modbus_id}
+#    address: 5035
+#    unit_of_measurement: "°C"
+#    register_type: holding
+#    value_type: U_WORD
+#    register_count: 7     # make all subsequent reads contiguous {one transaction}
+#    accuracy_decimals: 1
+#    filters:
+#      - multiply: 0.1
+
+  - id: ${modbus_id}current
+    name: ${modbus_id} Current
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 5042
+    unit_of_measurement: 'A'
+    register_type: holding
+    value_type: S_WORD
+    accuracy_decimals: 2
+    filters:
+      - multiply: 0.01
+
+  - id: ${modbus_id}voltage
+    name: ${modbus_id} Voltage
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 5043
+    unit_of_measurement: 'V'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.1
+
+  - id: ${modbus_id}capacity
+    name: ${modbus_id} Remaining Capacity
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 5044
+    unit_of_measurement: 'AH'
+    register_type: holding
+    value_type: U_DWORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.001
+
+  - id: ${modbus_id}size
+    name: ${modbus_id} size
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 5046
+    unit_of_measurement: 'AH'
+    register_type: holding
+    value_type: U_DWORD
+    accuracy_decimals: 1
+    filters:
+      - multiply: 0.001
+
+  - id: ${modbus_id}cycles
+    name: ${modbus_id} Total Cycles
+    platform: modbus_controller
+    modbus_controller_id: ${modbus_id}
+    address: 5048
+    unit_of_measurement: 'Cycles'
+    register_type: holding
+    value_type: U_WORD
+    accuracy_decimals: 0

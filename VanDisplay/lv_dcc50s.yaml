@@ -1,0 +1,88 @@
+# DCC50S Charge Controller display
+#- obj:
+  id: scc50s_container
+  width: 100%
+  height: 300
+  pad_all: 6
+  border_width: 2
+  border_color: black
+  radius: 18
+  bg_color: white
+  layout: # enable the GRID layout for the children widgets
+    type: GRID
+    grid_columns: [FR(1), FR(2), FR(2), FR(2)] # equal
+    grid_rows: [FR(2), FR(1), FR(1), FR(1), FR(1), FR(1), FR(1)] # like percents
+    pad_row: 6
+    pad_column: 8
+
+  widgets:
+    - label:
+        text: DCC50S Charge Controller
+        styles: header_style
+        grid_cell_column_span: 4
+        text_align: LV_TEXT_ALIGN_LEFT
+    - label:
+        text: " "
+    - label:
+        text: "SOLAR"
+    - label:
+        text: "HOUSE"
+    - label:
+        text: "SERVICE"
+    # Next row 
+    - label:
+        text: "Voltage"
+    - label:
+        id: w_solar_V
+        text: "-"
+    - label:
+        id: w_house_V
+        text: "-"
+    - label:
+        id: w_service_V
+        text: "-"
+    # Next row 
+    - label:
+        text: "Current"
+    - label:
+        id: w_solar_A
+        text: "-"
+    - label:
+        id: w_house_A
+        text: "-"
+    - label:
+        id: w_service_A
+        text: "-"
+    # Next row 
+    - label:
+        text: "Power"
+    - label:
+        id: w_solar_W
+        text: "-"
+    - label:
+        id: w_house_W
+        text: "-"
+    - label:
+        id: w_service_W
+        text: "-"
+    # Next row 
+    - label:
+        text: "Status"
+    - label:
+        text: "Charger"
+    - label:
+        text: "Temperature"
+    - label:
+        text: "Cycles"
+    # Next row 
+    - label:
+        text: " "
+    - label:
+        text: "-"
+        id: w_charger_status
+    - label:
+        id: w_charger_temp
+        text: "-"
+    - label:
+        id: w_cycles
+        text: "-"
