@@ -1,5 +1,7 @@
-# Esphome-Renogy-Display-and-Control-HomeAssistant-compatibe-
+# Esphome-Renogy-Display-and-Control-HA-compatible
 Van Automation using Esphome, Waveshare 8 relay board and 7" lcd display plus refrigerator control using Lilygo t-display s3
+
+As build most controls are exposed to the HomeAssistant front end, but this package can operate independently of HA, and, if the ESPNOW protol is used, doesn't even need a local WiFi AP to operate and has a very low idle current consumption.
 
 - **Waveshare ESP32 S3 ETH 8DI 8RO**
 Renogy Modbus interface via RS485 with relay control of van funtions.
