@@ -1,0 +1,127 @@
+
+#packet_transport:
+  - platform: ${transport}
+    id: charger_pck
+    update_interval: 10s
+    sensors:
+      - ${charger_id}_house_current
+      - ${charger_id}_house_power
+      - ${charger_id}_house_temp
+      - ${charger_id}_house_voltage
+      - ${charger_id}_service_current
+      - ${charger_id}_service_power
+      - ${charger_id}_service_voltage
+      - ${charger_id}_solar_current
+      - ${charger_id}_solar_power
+
+  - platform: ${transport}
+    id: charger2_pck
+    update_interval: 10s
+    sensors:
+      - ${charger_id}_solar_voltage
+      - ${charger_id}_charge_cycles
+      - ${charger_id}_charger_temp
+      - ${charger_id}_status
+
+  - platform: ${transport}
+    id: house_pck
+    update_interval: 10s
+    sensors:
+      - ${charger_id}_solar_voltage
+      - ${charger_id}_charge_cycles
+      - ${charger_id}_charger_temp
+      - ${charger_id}_status
+      - battery_capacity
+      - battery_size
+      - battery_current
+      - battery_voltage
+      - battery_temp
+      - battery_soc         # 19
+
+  - platform: ${transport}
+    id: battery1_packet
+    update_interval: 10s
+    sensors:
+      - battery1current
+      - battery1voltage
+      - battery1size
+      - battery1capacity
+      - battery1cycles
+
+  - platform: ${transport}
+    id: battery1a_packet
+    update_interval: 10s
+    sensors:
+      - battery1_v_cell1
+      - battery1_v_cell2
+      - battery1_v_cell3
+      - battery1_v_cell4
+      - battery1_t_cell1
+      - battery1_t_cell2
+      - battery1_t_cell3
+      - battery1_t_cell4    # 32
+    
+  - platform: ${transport}
+    id: battery2_packet
+    update_interval: 10s
+    sensors:
+      - battery2current
+      - battery2voltage
+      - battery2size
+      - battery2capacity
+      - battery2cycles
+
+  - platform: ${transport}
+    id: battery2a_packet
+    update_interval: 10s
+    sensors:
+      - battery2_v_cell1
+      - battery2_v_cell2
+      - battery2_v_cell3
+      - battery2_v_cell4
+      - battery2_t_cell1
+      - battery2_t_cell2
+      - battery2_t_cell3
+      - battery2_t_cell4    # 45
+
+  - platform: ${transport}
+    id: battery3_packet
+    update_interval: 10s
+    sensors:
+      - battery3current
+      - battery3voltage
+      - battery3size
+      - battery3capacity
+      - battery3cycles
+
+  - platform: ${transport}
+    id: battery3b_packet
+    update_interval: 10s
+    sensors:
+      - battery3_v_cell1
+      - battery3_v_cell2
+      - battery3_v_cell3
+      - battery3_v_cell4
+      - battery3_t_cell1
+      - battery3_t_cell2
+      - battery3_t_cell3
+      - battery3_t_cell4    # 58
+
+  - platform: ${transport}
+    id: switch_transport
+    update_interval: 1s
+    sensors:
+    binary_sensors:
+      # automation control
+      - vc_soc_enable
+      - vc_cabinet_enable
+      - vc_heater_enable
+      # relay status
+      - Starlink
+      - WaterPump
+      - InteriorLights
+      - ExteriorLights
+      - Spare
+      - BatteryHeater
+      - CabinetFan
+      - SolarConnected      # 11 binary
